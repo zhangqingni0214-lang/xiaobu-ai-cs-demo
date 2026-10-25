@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>小布在家 AI 客服台</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: kraft-paper ground, phone chat on the left, agent workbench on the right; stacks on phones */
+:root{
+  --bg:#d9c4a5; --bg-deep:#cdb491; --card:#fffdf8; --ink:#4a2f1d; --soft:#8b6d56; --line:#ecdfcc;
+  --accent:#6e4326; --on-accent:#fff8ef; --tint:#f6ecdf;
+  --p0:#c4533a; --p0-tint:#fbe7e1; --ok:#5b8a4c; --ok-tint:#e8f1e2; --warn:#c08a2a; --warn-tint:#f8eed9;
+  --llm:#7d6bb0; --tool:#4f87a8; --rule:#b98a3a; --human:#c4533a;
+  --ios-bg:#f6eee2; --hair:rgba(74,47,29,.18); --frame:#2e2016; --frame-edge:#6b4c35;
+  --f-ios:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Noto Sans SC",sans-serif;
+  --f-display:"ZCOOL KuaiLe","PingFang SC","Microsoft YaHei",sans-serif;
+  --f-body:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#2a211a; --bg-deep:#231b15; --card:#372b22; --ink:#f4e7d6; --soft:#c4ab93; --line:#4a3b2f;
+  --accent:#e2b68b; --on-accent:#2a1c11; --tint:#433429;
+  --p0:#f08a70; --p0-tint:#4d2c24; --ok:#9cc98a; --ok-tint:#2f3d29; --warn:#e6bb68; --warn-tint:#463a22;
+  --llm:#b3a4e6; --tool:#8cc0de; --rule:#e2bb72; --human:#f08a70; --ios-bg:#1f1813; --hair:rgba(244,231,214,.16); --frame:#0d0906; --frame-edge:#4a3828; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#2a211a; --bg-deep:#231b15; --card:#372b22; --ink:#f4e7d6; --soft:#c4ab93; --line:#4a3b2f;
+  --accent:#e2b68b; --on-accent:#2a1c11; --tint:#433429;
+  --p0:#f08a70; --p0-tint:#4d2c24; --ok:#9cc98a; --ok-tint:#2f3d29; --warn:#e6bb68; --warn-tint:#463a22;
+  --llm:#b3a4e6; --tool:#8cc0de; --rule:#e2bb72; --human:#f08a70; --ios-bg:#1f1813; --hair:rgba(244,231,214,.16); --frame:#0d0906; --frame-edge:#4a3828; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.55;
+  background-image:radial-gradient(color-mix(in srgb,var(--bg-deep) 70%,transparent) 1px,transparent 1.2px);background-size:7px 7px}
+.wrap{max-width:1180px;margin:0 auto;padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+
+header{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.mascot{width:64px;height:58px;flex:none}
+.brand h1{font-family:var(--f-display);font-weight:400;font-size:30px;margin:0;line-height:1.1;letter-spacing:.02em}
+.brand p{margin:2px 0 0;color:var(--soft);font-size:13px}
+.proto{margin-left:auto;font-size:12px;color:var(--soft);background:var(--card);border-radius:999px;padding:5px 12px;border:1.5px dashed var(--line)}
+
+.controls{background:var(--card);border-radius:22px;padding:14px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.controls .lab{font-family:var(--f-display);font-size:16px;margin-right:4px}
+.chip{font:inherit;font-size:13px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:6px 13px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.chip:hover{border-color:var(--accent)}
+.chip.on{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.chip .lv{font-family:var(--f-mono);font-size:11px;opacity:.75}
+.toggle{margin-left:auto;display:flex;gap:8px;align-items:center;font-size:13px;color:var(--soft);cursor:pointer}
+.toggle input{accent-color:var(--p0);width:16px;height:16px}
+button:focus-visible,input:focus-visible,.chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+main{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:860px){main{grid-template-columns:minmax(0,1fr)}.toggle{margin-left:0}}
+
+/* phone: iPhone frame */
+.phone{justify-self:center;width:100%;max-width:384px;height:790px;padding:12px;border-radius:60px;background:var(--frame);box-shadow:0 0 0 2px var(--frame-edge),0 26px 40px -20px rgba(60,35,15,.5)}
+@media (max-width:860px){.phone{height:740px}}
+.screen{position:relative;height:100%;border-radius:48px;overflow:hidden;background:var(--ios-bg);display:flex;flex-direction:column;font-family:var(--f-ios);color:var(--ink)}
+.island{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:112px;height:33px;border-radius:20px;background:#000;z-index:9}
+.status{height:52px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:8px 30px 0 36px;font-weight:600;font-size:15px}
+.status .ic{display:flex;gap:6px;align-items:center}
+.nav{flex:none;display:grid;grid-template-columns:48px 1fr 48px;align-items:center;padding:2px 6px 8px;border-bottom:.5px solid var(--hair);background:color-mix(in srgb,var(--ios-bg) 88%,transparent);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.nav .back{color:var(--accent);display:flex;align-items:center;gap:2px;font-size:16px;padding-left:4px}
+.nav .who{display:flex;flex-direction:column;align-items:center;gap:3px}
+.nav .av{width:40px;height:40px;border-radius:50%;background:var(--card);display:grid;place-items:center;border:.5px solid var(--hair)}
+.nav b{font-size:12px;font-weight:600;line-height:1}
+.nav small{font-size:10px;color:var(--ok);line-height:1}
+.nav .info{justify-self:end;color:var(--accent);padding-right:8px;display:flex}
+.msgs{flex:1;overflow-y:auto;padding:10px 14px 14px;display:flex;flex-direction:column;gap:6px;scrollbar-width:none}
+.stamp{align-self:center;font-size:11px;color:var(--soft);margin:2px 0 6px}
+.msg{max-width:80%;padding:8px 13px;border-radius:20px;white-space:pre-wrap;word-break:break-word;font-size:15px;line-height:1.42}
+.msg.u{align-self:flex-end;background:var(--accent);color:var(--on-accent);border-bottom-right-radius:6px}
+.msg.a{align-self:flex-start;background:var(--card);border-bottom-left-radius:6px;box-shadow:0 1px 1.5px rgba(80,50,20,.08)}
+.msg.a.p0{box-shadow:0 0 0 1.5px var(--p0)}
+.src{display:block;margin-top:6px;font-size:11px;color:var(--soft)}
+.src::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--tool);margin-right:5px;vertical-align:1px}
+.src.r::before{background:var(--human)}
+.card-in{margin-top:8px;background:var(--ios-bg);border-radius:12px;font-size:13px;display:flex;flex-direction:column}
+.card-in .row{display:flex;justify-content:space-between;gap:10px;padding:7px 11px;border-bottom:.5px solid var(--hair)}
+.card-in .row:last-child{border:none}
+.card-in .row span:first-child{color:var(--soft)}
+.btns{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap}
+.btn{font:inherit;font-size:14px;font-weight:600;border-radius:999px;padding:6px 14px;cursor:pointer;border:none;background:var(--accent);color:var(--on-accent)}
+.btn.ghost{background:var(--ios-bg);color:var(--accent)}
+.btn:disabled{opacity:.4;cursor:default}
+.typing{align-self:flex-start;background:var(--card);border-radius:20px;border-bottom-left-radius:6px;padding:12px 14px;display:flex;gap:4px}
+.typing i{width:7px;height:7px;border-radius:50%;background:var(--soft);animation:b 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes b{0%,60%,100%{transform:none;opacity:.45}30%{transform:translateY(-3px);opacity:1}}
+.compose{flex:none;display:flex;gap:8px;align-items:center;padding:8px 12px 4px;background:color-mix(in srgb,var(--ios-bg) 88%,transparent);border-top:.5px solid var(--hair)}
+.plus{width:32px;height:32px;border-radius:50%;background:var(--card);border:.5px solid var(--hair);color:var(--soft);display:grid;place-items:center;flex:none;padding:0}
+.compose input{flex:1;min-width:0;font:inherit;font-size:15px;border:.5px solid var(--hair);border-radius:18px;padding:7px 14px;background:var(--card);color:var(--ink)}
+.send{width:32px;height:32px;border-radius:50%;border:none;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;flex:none;cursor:pointer;padding:0}
+.home{flex:none;height:24px;display:grid;place-items:center;background:color-mix(in srgb,var(--ios-bg) 88%,transparent)}
+.home i{width:134px;height:5px;border-radius:3px;background:var(--ink)}
+/* iOS bottom sheet */
+.sheet-wrap{position:absolute;inset:0;z-index:8;background:rgba(20,12,6,.32);display:flex;align-items:flex-end;opacity:0;transition:opacity .25s}
+.sheet-wrap.show{opacity:1}
+.sheet{width:100%;background:var(--card);border-radius:24px 24px 0 0;padding:8px 18px 30px;transform:translateY(100%);transition:transform .32s cubic-bezier(.2,.8,.2,1)}
+.sheet-wrap.show .sheet{transform:none}
+.grab{width:36px;height:5px;border-radius:3px;background:var(--hair);margin:0 auto 12px}
+.sheet .pic{display:grid;place-items:center;margin-bottom:6px}
+.sheet h4{margin:0 0 4px;font-size:17px;text-align:center;font-weight:600}
+.sheet p{margin:0 0 14px;text-align:center;color:var(--soft);font-size:13px}
+.sheet .list{background:var(--ios-bg);border-radius:12px;margin-bottom:16px}
+.sheet .list div{display:flex;justify-content:space-between;padding:11px 14px;font-size:15px;border-bottom:.5px solid var(--hair)}
+.sheet .list div:last-child{border:none}
+.sheet .list span:first-child{color:var(--soft)}
+.sheet .big{width:100%;font:inherit;font-size:17px;font-weight:600;border:none;border-radius:14px;padding:13px;background:var(--accent);color:var(--on-accent);cursor:pointer}
+.sheet .cancel{width:100%;font:inherit;font-size:17px;border:none;background:none;color:var(--accent);padding:12px 0 0;cursor:pointer}
+
+/* workbench */
+.bench{display:flex;flex-direction:column;gap:14px;min-width:0}
+.bench-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.bench-head h2{font-family:var(--f-display);font-weight:400;font-size:22px;margin:0}
+.bench-head span{color:var(--soft);font-size:12px}
+.panel{background:var(--card);border-radius:20px;padding:16px 18px;min-width:0}
+.panel h3{margin:0 0 12px;font-size:12px;letter-spacing:.08em;color:var(--soft);font-weight:500}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:560px){.grid4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kv small{display:block;color:var(--soft);font-size:12px}
+.kv b{font-size:15px;font-weight:700}
+.bar{height:6px;border-radius:6px;background:var(--line);margin-top:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);transition:width .4s}
+.bar.low i{background:var(--warn)}
+.pill{display:inline-block;font-family:var(--f-mono);font-size:12px;border-radius:999px;padding:2px 10px}
+.pill.P0{background:var(--p0-tint);color:var(--p0)}.pill.P1,.pill.P2{background:var(--warn-tint);color:var(--warn)}.pill.P3{background:var(--ok-tint);color:var(--ok)}
+.fields{display:flex;flex-wrap:wrap;gap:8px}
+.field{background:var(--tint);border-radius:10px;padding:5px 10px;font-size:13px}
+.field span{color:var(--soft);margin-right:6px}
+
+.layers{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.layer{font-size:12px;border-radius:999px;padding:4px 11px;border:1.5px solid var(--line);color:var(--soft);display:flex;gap:6px;align-items:center;transition:all .25s}
+.layer::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--line)}
+.layer.on{color:var(--ink);border-color:currentColor}
+.layer.on[data-k="LLM"]{color:var(--llm)}.layer.on[data-k="Tools"]{color:var(--tool)}.layer.on[data-k="规则"]{color:var(--rule)}.layer.on[data-k="人工"]{color:var(--human)}
+.layer.on::before{background:currentColor}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.step{display:grid;grid-template-columns:62px minmax(0,1fr) auto;gap:10px;align-items:start;font-size:13px}
+.step .who{font-size:11px;font-weight:700;border-radius:6px;padding:2px 0;text-align:center}
+.step .who[data-k="LLM"]{color:var(--llm);background:color-mix(in srgb,var(--llm) 14%,transparent)}
+.step .who[data-k="Tools"]{color:var(--tool);background:color-mix(in srgb,var(--tool) 14%,transparent)}
+.step .who[data-k="规则"]{color:var(--rule);background:color-mix(in srgb,var(--rule) 14%,transparent)}
+.step .who[data-k="用户"]{color:var(--accent);background:var(--tint)}
+.step .who[data-k="人工"]{color:var(--human);background:color-mix(in srgb,var(--human) 14%,transparent)}
+.step code{font-family:var(--f-mono);font-size:12px;color:var(--soft)}
+.step .st{font-size:12px;font-family:var(--f-mono)}
+.st.ok{color:var(--ok)}.st.fail{color:var(--p0)}.st.wait{color:var(--warn)}
+.empty{color:var(--soft);font-size:13px}
+
+.route{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.route b{font-size:16px}
+.route p{margin:0;color:var(--soft);font-size:13px;flex-basis:100%}
+.ticket{border:2px solid var(--p0);background:var(--p0-tint);border-radius:20px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.ticket.normal{border-color:var(--warn);background:var(--warn-tint)}
+.ticket .th{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
+.ticket .th b{font-family:var(--f-display);font-weight:400;font-size:19px}
+.ticket .th code{font-family:var(--f-mono);font-size:12px;color:var(--soft)}
+.ticket p{margin:0;font-size:13.5px}
+.ticket .rec{background:var(--card);border-radius:12px;padding:8px 12px;font-size:13px}
+.ticket .rec span{color:var(--soft)}
+.pulse{animation:pl .6s ease 2}
+@keyframes pl{50%{transform:scale(1.015)}}
+footer{color:var(--soft);font-size:12px;text-align:center}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <svg class="mascot" viewBox="0 0 64 58" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--ink)">
+      <path d="M17 26 L12 7 L26 17"/><path d="M47 26 L52 7 L38 17"/>
+      <path d="M15 40 C13 24 21 16 32 16 C43 16 51 24 49 40" fill="var(--card)"/>
+      <circle cx="25" cy="30" r="1.8" fill="currentColor"/><circle cx="39" cy="30" r="1.8" fill="currentColor"/>
+      <path d="M30 35 h4 l-2 2.4 z" fill="currentColor"/><path d="M32 37.5 v2 M28.5 40.5 q3.5 2.5 7 0"/>
+      <path d="M4 44 H60"/><path d="M14 44 c0-6 9-6 9 0" fill="var(--card)"/><path d="M41 44 c0-6 9-6 9 0" fill="var(--card)"/>
+      <path d="M17 41 v3 M20 41 v3 M44 41 v3 M47 41 v3" stroke-width="1.6"/>
+    </svg>
+    <div class="brand">
+      <h1>小布在家 · AI 客服台</h1>
+      <p>LLM 负责理解，Tools 取数执行，规则判定，人负责高风险决策</p>
+    </div>
+    <span class="proto">交互原型 · AI 判断为预置模拟，数据虚构</span>
+  </header>
+
+  <div class="controls">
+    <span class="lab">试一试</span>
+    <button class="chip" data-s="presale" id="s-presale">售前咨询 <span class="lv">P3</span></button>
+    <button class="chip" data-s="query" id="s-query">订单查询 <span class="lv">P3</span></button>
+    <button class="chip" data-s="reschedule" id="s-reschedule">改约 <span class="lv">P2</span></button>
+    <button class="chip" data-s="p0" id="s-p0">宠物走失 <span class="lv">P0</span></button>
+    <label class="toggle" for="fail"><input type="checkbox" id="fail"> 模拟订单接口故障</label>
+  </div>
+
+  <main>
+    <section class="phone" aria-label="用户端（iPhone）">
+     <div class="screen" id="screen">
+      <div class="island"></div>
+      <div class="status">
+        <span>9:41</span>
+        <span class="ic" aria-hidden="true">
+          <svg width="18" height="11" viewBox="0 0 18 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="6" rx="1"/><rect x="10" y="2.5" width="3" height="8.5" rx="1"/><rect x="15" y="0" width="3" height="11" rx="1"/></svg>
+          <svg width="16" height="11" viewBox="0 0 16 11" fill="currentColor"><path d="M8 2.2c2.3 0 4.4.9 6 2.4l1.1-1.2A10.2 10.2 0 0 0 8 .5 10.2 10.2 0 0 0 .9 3.4L2 4.6a8.6 8.6 0 0 1 6-2.4Zm0 3.3c1.4 0 2.6.5 3.6 1.4l1.1-1.2A7 7 0 0 0 8 3.8a7 7 0 0 0-4.7 1.9l1.1 1.2c1-.9 2.2-1.4 3.6-1.4Zm0 3.3c.5 0 1 .2 1.3.5L8 10.8 6.7 9.3c.3-.3.8-.5 1.3-.5Z"/></svg>
+          <svg width="26" height="12" viewBox="0 0 26 12" fill="none"><rect x=".5" y=".5" width="22" height="11" rx="3.2" stroke="currentColor" opacity=".45"/><rect x="2" y="2" width="16" height="8" rx="2" fill="currentColor"/><path d="M24 4v4c.8-.3 1.3-1.1 1.3-2S24.8 4.3 24 4Z" fill="currentColor" opacity=".45"/></svg>
+        </span>
+      </div>
+      <div class="nav">
+        <span class="back" aria-hidden="true"><svg width="12" height="20" viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2 2 10l8 8"/></svg></span>
+        <div class="who"><div class="av"><svg width="26" height="24" viewBox="0 0 64 58" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink)"><path d="M17 26 L12 7 L26 17"/><path d="M47 26 L52 7 L38 17"/><path d="M15 40 C13 24 21 16 32 16 C43 16 51 24 49 40"/><circle cx="25" cy="30" r="1.6" fill="currentColor"/><circle cx="39" cy="30" r="1.6" fill="currentColor"/><path d="M30 35 h4 l-2 2.4 z" fill="currentColor"/></svg></div><b>小布客服 ›</b><small>● 在线</small></div>
+        <span class="info" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="9.5"/><path d="M11 10v6" stroke-linecap="round"/><circle cx="11" cy="6.6" r="1.1" fill="currentColor" stroke="none"/></svg></span>
+      </div>
+      <div class="msgs" id="msgs" aria-live="polite"><div class="stamp">今天 09:41</div></div>
+      <form class="compose" id="compose">
+        <button class="plus" type="button" aria-label="添加图片"><svg width="14" height="14" viewBox="0 0 14 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 1v12M1 7h12"/></svg></button>
+        <input id="inp" autocomplete="off" placeholder="描述问题，例如：我要找人工" aria-label="输入消息">
+        <button class="send" type="submit" aria-label="发送"><svg width="14" height="16" viewBox="0 0 14 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 14V2M1.5 7.5 7 2l5.5 5.5"/></svg></button>
+      </form>
+      <div class="home"><i></i></div>
+     </div>
+    </section>
+
+    <section class="bench" aria-label="客服工作台">
+      <div class="bench-head"><h2>客服工作台</h2><span>实时显示 AI 对当前消息的判断与处理链路</span></div>
+
+      <div class="panel">
+        <h3>AI 判断</h3>
+        <div class="grid4">
+          <div class="kv"><small>意图</small><b id="intent">—</b></div>
+          <div class="kv"><small>置信度</small><b id="conf">—</b><div class="bar" id="confbar"><i style="width:0"></i></div></div>
+          <div class="kv"><small>风险等级</small><b><span class="pill" id="risk">—</span></b></div>
+          <div class="kv"><small>用户情绪</small><b id="mood">—</b></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>抽取信息</h3>
+        <div class="fields" id="fields"><span class="empty">等待用户消息</span></div>
+      </div>
+
+      <div class="panel">
+        <h3>处理链路</h3>
+        <div class="layers" id="layers">
+          <span class="layer" data-k="LLM">LLM 理解</span>
+          <span class="layer" data-k="Tools">Tools 取数 / 执行</span>
+          <span class="layer" data-k="规则">规则判定</span>
+          <span class="layer" data-k="人工">人工确认</span>
+        </div>
+        <ol class="steps" id="steps"></ol>
+      </div>
+
+      <div class="panel">
+        <h3>路由结果</h3>
+        <div class="route" id="route"><span class="empty">—</span></div>
+      </div>
+
+      <div id="ticket" hidden></div>
+    </section>
+  </main>
+  <footer>演示数据：用户王小姐，宠物豆豆（柯基 3 岁）、团子（英短 16 岁，肾病）。订单与时段均为虚构。</footer>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const wait = ms => new Promise(r => setTimeout(r, reduce ? 0 : ms));
+function el(tag, cls, text){ const e = document.createElement(tag); if(cls) e.className = cls; if(text != null) e.textContent = text; return e; }
+
+const ORDER = {id:'XB20261027001', service:'上门洗护', pet:'豆豆 · 柯基 · 3 岁', time:'明天 10/27 15:00', staff:'李悦（认证专员）', status:'已派单', price:'¥168'};
+const FEED  = {id:'XB20261026002', service:'上门喂养', pet:'团子 · 英短 · 16 岁', time:'今天 10:00', staff:'张晓'};
+const SLOTS = [{t:'17:00', ok:false},{t:'18:00', ok:true},{t:'19:00', ok:true}];
+
+const msgs = $('#msgs');
+let busy = false;
+
+function scroll(){ msgs.scrollTop = msgs.scrollHeight; }
+function userSay(t){ msgs.append(el('div','msg u',t)); scroll(); }
+function aiSay(text, opts = {}){
+  const m = el('div','msg a' + (opts.p0 ? ' p0' : ''), text);
+  if(opts.card){ const c = el('div','card-in'); opts.card.forEach(([k,v]) => { const r = el('div','row'); r.append(el('span',null,k), el('span',null,v)); c.append(r); }); m.append(c); }
+  if(opts.buttons){ const b = el('div','btns'); opts.buttons.forEach(x => { const bt = el('button','btn' + (x.ghost ? ' ghost' : ''), x.label); bt.type='button'; bt.addEventListener('click', () => { b.querySelectorAll('button').forEach(z => z.disabled = true); x.onClick(); }); b.append(bt); }); m.append(b); }
+  if(opts.src) m.append(el('span','src' + (opts.srcR ? ' r' : ''), opts.src));
+  msgs.append(m); scroll();
+}
+function sheet(o){
+  return new Promise(res => {
+    const w = el('div','sheet-wrap'), sh = el('div','sheet');
+    sh.setAttribute('role','dialog'); sh.setAttribute('aria-label', o.title);
+    sh.append(el('div','grab'), el('h4',null,o.title), el('p',null,o.desc));
+    const list = el('div','list'); o.rows.forEach(([k,v]) => { const d = el('div'); d.append(el('span',null,k), el('span',null,v)); list.append(d); }); sh.append(list);
+    const ok = el('button','big',o.ok); ok.type='button'; const no = el('button','cancel',o.cancel); no.type='button';
+    sh.append(ok, no); w.append(sh); $('#screen').append(w);
+    requestAnimationFrame(() => requestAnimationFrame(() => w.classList.add('show')));
+    const close = v => { w.classList.remove('show'); setTimeout(() => w.remove(), reduce ? 0 : 320); res(v); };
+    ok.addEventListener('click', () => close(true)); no.addEventListener('click', () => close(false));
+    w.addEventListener('click', e => { if(e.target === w) close(false); });
+    ok.focus();
+  });
+}
+async function typing(ms = 700){ const t = el('div','typing'); t.append(el('i'),el('i'),el('i')); msgs.append(t); scroll(); await wait(ms); t.remove(); }
+
+function resetBench(){
+  $('#intent').textContent = '分析中…'; $('#conf').textContent = '—'; $('#confbar').className = 'bar'; $('#confbar i').style.width = '0';
+  const r = $('#risk'); r.textContent = '—'; r.className = 'pill'; $('#mood').textContent = '—';
+  $('#fields').replaceChildren(el('span','empty','抽取中…'));
+  document.querySelectorAll('.layer').forEach(l => l.classList.remove('on'));
+  $('#steps').replaceChildren(); $('#route').replaceChildren(el('span','empty','—'));
+  $('#ticket').hidden = true; $('#ticket').replaceChildren();
+}
+function setAnalysis(a){
+  $('#intent').textContent = a.intent;
+  $('#conf').textContent = a.conf.toFixed(2);
+  $('#confbar').className = 'bar' + (a.conf < 0.7 ? ' low' : '');
+  $('#confbar i').style.width = Math.round(a.conf * 100) + '%';
+  const r = $('#risk'); r.textContent = a.risk; r.className = 'pill ' + a.risk;
+  $('#mood').textContent = a.mood;
+  const f = $('#fields'); f.replaceChildren();
+  if(!a.fields.length) f.append(el('span','empty','未抽取到关键信息'));
+  a.fields.forEach(([k,v]) => { const d = el('span','field'); d.append(el('span',null,k), document.createTextNode(v)); f.append(d); });
+}
+async function step(layer, text, code, status = 'ok'){
+  const L = document.querySelector(`.layer[data-k="${layer}"]`); if(L) L.classList.add('on');
+  const li = el('li','step');
+  const who = el('span','who',layer); who.dataset.k = layer;
+  const mid = el('div'); mid.append(document.createTextNode(text));
+  if(code){ mid.append(document.createElement('br'), el('code',null,code)); }
+  const st = el('span','st ' + status, {ok:'完成', fail:'失败', wait:'待确认'}[status]);
+  li.append(who, mid, st); $('#steps').append(li);
+  await wait(420);
+  return li;
+}
+function setRoute(title, desc){
+  const r = $('#route'); r.replaceChildren(el('b',null,title)); if(desc) r.append(el('p',null,desc));
+}
+function showTicket(t){
+  const box = $('#ticket'); box.className = 'ticket' + (t.p0 ? ' pulse' : ' normal');
+  const h = el('div','th'); h.append(el('b',null,t.title), el('code',null,t.id));
+  box.replaceChildren(h, el('p',null,t.summary));
+  const rec = el('div','rec'); rec.append(el('span',null,'建议动作：'), document.createTextNode(t.rec)); box.append(rec);
+  box.hidden = false;
+}
+
+const SCN = {
+  presale: '我家猫 16 岁有肾病，上门喂养能帮忙喂药吗？',
+  query:   '明天下午的洗护，专员几点到？',
+  reschedule: '能把明天下午 3 点的洗护改到 6 点吗？',
+  p0:      '回家发现猫不见了！！阳台窗户开着'
+};
+
+async function handle(text, key){
+  if(busy) return; busy = true;
+  document.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c.dataset.s === key));
+  userSay(text); resetBench();
+  const k = key || classify(text);
+  const fail = $('#fail').checked;
+  try { await FLOWS[k](text, fail); } finally { busy = false; }
+}
+
+function classify(t){
+  if(/不见|走失|丢了|受伤|流血|出血|咬|死|抽搐|门没锁|门开着/.test(t)) return 'p0';
+  if(/人工|客服|投诉|退钱|退款/.test(t)) return 'human';
+  if(/改到|改约|换个时间|改时间|推迟|提前/.test(t)) return 'reschedule';
+  if(/几点|到哪|订单|什么时候到|专员.*到/.test(t)) return 'query';
+  if(/喂药|多少钱|价格|能不能|可以|服务|洗护|遛狗|喂养|上门/.test(t)) return 'presaleGeneric';
+  return 'unclear';
+}
+
+const FLOWS = {
+  async presale(){
+    await step('LLM','意图识别 + 信息抽取','classify → presale_inquiry');
+    setAnalysis({intent:'售前咨询 · 特殊照护', conf:0.93, risk:'P3', mood:'平稳',
+      fields:[['宠物','猫 · 16 岁'],['健康','慢性肾病'],['服务','上门喂养'],['特殊需求','喂药']]});
+    await step('Tools','检索知识库：特殊照护、喂药服务说明','kb.search("喂药 慢性病")');
+    await step('规则','医疗边界检查：不输出用药或诊疗建议','guard.medical = on');
+    await step('LLM','基于检索结果生成回答');
+    setRoute('AI 自动解决','售前问题，知识库命中，无需人工');
+    await typing();
+    aiSay('可以的。认证专员可以按医嘱协助喂口服药，下单时请在备注里写清药名、剂量和时间，并提前把药品准备好。\n\n16 岁的肾病猫建议选择「认证专员」，他们接受过老年宠物照护培训。用药是否调整请以兽医意见为准，我们不提供用药建议。',
+      {src:'依据：服务说明 · 特殊照护条款', buttons:[{label:'帮我预约认证专员', onClick:()=>aiSay('好的，已为您筛选 3 位附近的认证专员，可在预约页查看。')},{label:'暂时不用', ghost:true, onClick:()=>aiSay('好的，有需要随时找我。')}]});
+  },
+
+  async presaleGeneric(t){
+    await step('LLM','意图识别 + 信息抽取','classify → presale_inquiry');
+    setAnalysis({intent:'售前咨询', conf:0.82, risk:'P3', mood:'平稳', fields:[['问题', t.slice(0,16)]]});
+    await step('Tools','检索知识库','kb.search(...)');
+    await step('LLM','基于检索结果生成回答');
+    setRoute('AI 自动解决','知识库命中');
+    await typing();
+    aiSay('小布提供上门喂养、洗护和遛狗服务，价格按宠物体型和时长计算，下单页可以看到实时报价。您具体想了解哪项服务？', {src:'依据：服务说明'});
+  },
+
+  async query(_, fail){
+    await step('LLM','意图识别 + 订单定位','classify → order_status');
+    setAnalysis({intent:'订单查询', conf:0.96, risk:'P3', mood:'平稳', fields:[['时间','明天下午'],['服务','洗护'],['订单', ORDER.id]]});
+    if(fail){
+      await step('Tools','查询订单','order_api.get("'+ORDER.id+'") → 503', 'fail');
+      await step('规则','取数失败：禁止由 LLM 生成订单信息，转人工','fallback.no_guess');
+      await step('人工','创建工单，附 AI 摘要', null, 'wait');
+      setRoute('转人工','订单系统不可用，AI 不猜测订单信息');
+      showTicket({title:'普通工单 · 订单查询', id:'CS-1026-0412', summary:'用户查询明天 15:00 上门洗护（豆豆，柯基）的专员到达时间。订单接口暂时不可用，AI 未回复具体时间。', rec:'客服手动查询订单后回复用户'});
+      await typing();
+      aiSay('订单系统暂时没能读取到您的订单信息。为了不给您错误的时间，我已经转给人工客服，大约 3 分钟内回复您。', {src:'已转人工 · 工单 CS-1026-0412', srcR:true});
+      return;
+    }
+    await step('Tools','查询订单','order_api.get("'+ORDER.id+'") → 200');
+    await step('LLM','用订单数据组织回复（时间与专员不经 LLM 生成）');
+    setRoute('AI 自动解决','数据来自订单系统');
+    await typing();
+    aiSay('帮您查到了明天的洗护订单：', {src:'数据来自订单系统', card:[['服务', ORDER.service],['宠物', ORDER.pet],['时间', ORDER.time],['专员', ORDER.staff],['状态', ORDER.status]]});
+  },
+
+  async reschedule(_, fail){
+    await step('LLM','意图识别 + 抽取改约目标','classify → modify_order');
+    setAnalysis({intent:'订单改约', conf:0.94, risk:'P2', mood:'平稳', fields:[['订单', ORDER.id],['原时间','明天 15:00'],['目标时间','明天 18:00']]});
+    if(fail){
+      await step('Tools','查询可约时段','schedule_api.slots("10-27") → 503', 'fail');
+      await step('规则','无法校验时段，不做任何承诺，转人工','fallback.no_guess');
+      await step('人工','创建工单，附 AI 摘要', null, 'wait');
+      setRoute('转人工','排班系统不可用');
+      showTicket({title:'普通工单 · 改约', id:'CS-1026-0413', summary:'用户希望把明天 15:00 的上门洗护（豆豆）改到 18:00。排班接口不可用，未能查询时段。', rec:'客服确认专员时段后回复用户'});
+      await typing();
+      aiSay('暂时查不到明天的可约时段，我已经帮您转给人工客服，确认后马上告诉您结果，原订单先保持不变。', {src:'已转人工 · 工单 CS-1026-0413', srcR:true});
+      return;
+    }
+    await step('Tools','查询专员明天可约时段','schedule_api.slots("10-27") → 18:00 可约');
+    await step('规则','改约规则校验：通过，免费改约','policy.reschedule = ok');
+    const pending = await step('人工','等待用户确认后执行', null, 'wait');
+    pending.querySelector('.who').textContent = '用户';
+    setRoute('等待用户确认','执行动作前必须由用户确认');
+    await typing();
+    aiSay('李悦专员明天 18:00 有空，改约免费。确认把时间改为明天 18:00 吗？', {src:'时段来自排班系统',
+      card:[['原时间','明天 15:00'],['新时间','明天 18:00'],['17:00','已约满']],
+      buttons:[
+        {label:'确认改约', onClick: async () => {
+          const yes = await sheet({title:'确认改约', desc:'确认后将立即修改订单并通知专员', rows:[['服务','上门洗护 · 豆豆'],['专员','李悦'],['原时间','明天 15:00'],['新时间','明天 18:00'],['费用','免费']], ok:'确认修改', cancel:'取消'});
+          if(!yes){ pending.querySelector('.st').textContent = '已取消'; userSay('先不改了'); aiSay('好的，原订单保持明天 15:00 不变。'); setRoute('已结束','用户取消，未执行任何改动'); return; }
+          pending.querySelector('.st').className = 'st ok'; pending.querySelector('.st').textContent = '已确认';
+          userSay('确认改约');
+          await step('Tools','执行改约','order_api.update(time="18:00") → 200');
+          await step('LLM','生成改约成功通知');
+          setRoute('AI 自动解决','用户确认后执行，已同步通知专员');
+          await typing(500);
+          aiSay('改好啦！明天 18:00 李悦专员上门给豆豆洗护，已同步通知专员。', {src:'订单状态已更新', card:[['订单', ORDER.id],['新时间','明天 10/27 18:00']]});
+        }},
+        {label:'再想想', ghost:true, onClick: () => { pending.querySelector('.st').textContent = '已取消'; userSay('再想想'); aiSay('好的，原订单保持明天 15:00 不变。'); setRoute('已结束','用户取消，未执行任何改动'); }}
+      ]});
+  },
+
+  async p0(){
+    await step('LLM','意图识别 + 风险判断','classify → complaint · pet_missing');
+    setAnalysis({intent:'售后 · 宠物走失', conf:0.97, risk:'P0', mood:'焦急',
+      fields:[['宠物','团子 · 英短 · 16 岁'],['事件','走失'],['现场','阳台窗户开着'],['关联订单', FEED.id]]});
+    await step('Tools','查询今日关联订单','order_api.recent() → 今天 10:00 上门喂养');
+    await step('规则','命中 P0 关键词，强制升级，跳过自动处理','escalate.p0');
+    await step('LLM','生成安抚话术与紧急指引（不承诺赔偿）');
+    await step('人工','客服主管接管，电话回拨', null, 'wait');
+    setRoute('立即转人工 · P0','宠物安全事件，AI 只做安抚和信息整理');
+    showTicket({p0:true, title:'P0 紧急工单 · 宠物走失', id:'CS-P0-1026-018',
+      summary:'用户回家发现猫咪团子（英短，16 岁，慢性肾病）不见了，阳台窗户处于打开状态。今天 10:00 有一单上门喂养（专员张晓）。用户情绪焦急。',
+      rec:'客服主管 2 分钟内电话回拨；同步联系专员张晓核实离开时门窗状态；协助用户联系物业调取监控'});
+    await typing(500);
+    aiSay('别着急，我们马上一起找团子。\n\n1. 先检查家里的柜子、床底、窗帘后面，老年猫受惊常会躲起来\n2. 看一下阳台外侧和楼下的空调外机、雨棚\n3. 联系物业调取楼道和小区监控\n\n已经为您升级为紧急事件，客服主管会在 2 分钟内给您打电话，我们也在同步联系今天上门的专员。', {p0:true, src:'已升级 P0 · 人工接管中', srcR:true});
+  },
+
+  async human(){
+    await step('LLM','意图识别：用户要求人工','classify → request_human');
+    setAnalysis({intent:'要求转人工', conf:0.91, risk:'P2', mood:'不满', fields:[['诉求','人工客服']]});
+    await step('规则','用户主动要求人工，直接转接','route.human');
+    await step('人工','创建工单，附对话摘要', null, 'wait');
+    setRoute('转人工','用户主动要求');
+    showTicket({title:'普通工单 · 用户要求人工', id:'CS-1026-0414', summary:'用户在对话中要求人工客服，AI 已附上近期订单和对话记录。', rec:'客服查看摘要后直接回复，无需重复询问'});
+    await typing();
+    aiSay('好的，已经为您转接人工客服，您刚才说的情况已经同步过去，不用再重复描述。', {src:'已转人工 · 工单 CS-1026-0414', srcR:true});
+  },
+
+  async unclear(){
+    await step('LLM','意图识别：置信度偏低','classify → unknown');
+    setAnalysis({intent:'不确定', conf:0.48, risk:'P3', mood:'平稳', fields:[]});
+    await step('规则','低置信：不硬答，先追问一次','clarify.once');
+    setRoute('追问澄清','仍无法判断时转人工');
+    await typing();
+    aiSay('我想确认一下，您是想：', {buttons:[
+      {label:'咨询服务', onClick:()=>handle('上门喂养是怎么收费的？')},
+      {label:'查询订单', onClick:()=>handle(SCN.query,'query')},
+      {label:'反馈问题', onClick:()=>handle('我要找人工')}
+    ]});
+  }
+};
+
+document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => handle(SCN[c.dataset.s], c.dataset.s)));
+$('#compose').addEventListener('submit', e => { e.preventDefault(); const v = $('#inp').value.trim(); if(!v) return; $('#inp').value = ''; handle(v); });
+
+aiSay('您好，我是小布客服，可以问我服务、订单，或者告诉我遇到的问题。');
+handle(SCN.presale, 'presale');
+</script>
+</body>
+</html>
